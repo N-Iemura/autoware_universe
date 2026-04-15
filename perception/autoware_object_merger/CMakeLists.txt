@@ -28,14 +28,12 @@ target_link_libraries(${PROJECT_NAME}
   Eigen3::Eigen
 )
 
-autoware_agnocast_wrapper_register_node(${PROJECT_NAME}
+rclcpp_components_register_node(${PROJECT_NAME}
   PLUGIN "autoware::object_merger::ObjectAssociationMergerNode"
   EXECUTABLE object_association_merger_node
-  ROS2_EXECUTOR SingleThreadedExecutor
-  AGNOCAST_EXECUTOR CallbackIsolatedAgnocastExecutor
 )
 
-autoware_ament_auto_package(INSTALL_TO_SHARE
+ament_auto_package(INSTALL_TO_SHARE
   launch
   config
 )

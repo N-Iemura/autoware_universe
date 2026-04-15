@@ -77,10 +77,7 @@ struct PredictedRefPath
   Maneuver maneuver;
 };
 
-/**
- * @brief Data container for a road user
- */
-struct RoadUser
+struct ObjectData
 {
   std_msgs::msg::Header header;
   lanelet::ConstLanelets current_lanelets;
@@ -94,22 +91,14 @@ struct RoadUser
   Maneuver output_maneuver{
     Maneuver::UNINITIALIZED};  // output maneuver considering previous one shot maneuvers
 };
-
-/**
- * @brief Data container for a crosswalk user
- */
-struct CrosswalkUser
+struct Intention
 {
-  /**
-   * @brief Data container for a crosswalk user's intention
-   */
-  struct Intention
-  {
-    rclcpp::Time last_crossing_intention_time;
-    rclcpp::Time last_no_crossing_intention_time;
-    Eigen::Vector2d point;
-  };
-
+  rclcpp::Time last_crossing_intention_time;
+  rclcpp::Time last_no_crossing_intention_time;
+  Eigen::Vector2d point;
+};
+struct CrosswalkUserData
+{
   std_msgs::msg::Header header;
   autoware_perception_msgs::msg::TrackedObject tracked_object;
   std::vector<Intention> intention_history;

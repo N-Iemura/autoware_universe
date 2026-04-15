@@ -16,6 +16,7 @@
 
 """Optimize input based on iLQR."""
 
+
 from importlib import reload as ir
 import time
 from typing import Callable

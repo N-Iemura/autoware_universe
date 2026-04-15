@@ -64,25 +64,19 @@ ament_auto_add_library(object_position_filter SHARED
   lib/utils/utils.cpp
 )
 
-autoware_agnocast_wrapper_register_node(obstacle_pointcloud_based_validator
+rclcpp_components_register_node(obstacle_pointcloud_based_validator
   PLUGIN "autoware::detected_object_validation::obstacle_pointcloud::ObstaclePointCloudBasedValidator"
   EXECUTABLE obstacle_pointcloud_based_validator_node
-  ROS2_EXECUTOR SingleThreadedExecutor
-  AGNOCAST_EXECUTOR CallbackIsolatedAgnocastExecutor
 )
 
-autoware_agnocast_wrapper_register_node(object_lanelet_filter
+rclcpp_components_register_node(object_lanelet_filter
   PLUGIN "autoware::detected_object_validation::lanelet_filter::DetectedObjectLaneletFilterNode"
   EXECUTABLE object_lanelet_filter_node
-  ROS2_EXECUTOR SingleThreadedExecutor
-  AGNOCAST_EXECUTOR CallbackIsolatedAgnocastExecutor
 )
 
-autoware_agnocast_wrapper_register_node(object_lanelet_filter
+rclcpp_components_register_node(object_lanelet_filter
   PLUGIN "autoware::detected_object_validation::lanelet_filter::TrackedObjectLaneletFilterNode"
   EXECUTABLE tracked_object_lanelet_filter_node
-  ROS2_EXECUTOR SingleThreadedExecutor
-  AGNOCAST_EXECUTOR CallbackIsolatedAgnocastExecutor
 )
 
 rclcpp_components_register_node(object_position_filter
@@ -106,7 +100,7 @@ if(BUILD_TESTING)
   )
 endif()
 
-autoware_ament_auto_package(INSTALL_TO_SHARE
+ament_auto_package(INSTALL_TO_SHARE
   launch
   config
 )

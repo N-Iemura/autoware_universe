@@ -47,7 +47,7 @@ public:
 
   void optimize_trajectory(
     TrajectoryPoints & traj_points, const TrajectoryOptimizerParams & params,
-    TrajectoryOptimizerData & data) override;
+    const TrajectoryOptimizerData & data) override;
   void set_up_params() override;
   rcl_interfaces::msg::SetParametersResult on_parameter(
     const std::vector<rclcpp::Parameter> & parameters) override;

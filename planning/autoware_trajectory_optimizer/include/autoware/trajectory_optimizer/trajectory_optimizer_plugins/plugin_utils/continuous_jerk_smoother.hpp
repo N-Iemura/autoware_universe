@@ -84,6 +84,8 @@ public:
   /**
    * @brief Apply jerk-filtered smoothing to a trajectory
    *
+   * @param v0 Initial velocity [m/s]
+   * @param a0 Initial acceleration [m/s²]
    * @param input Input trajectory points
    * @param output Output smoothed trajectory points
    * @param max_velocity_per_point Per-point velocity upper bounds [m/s].
@@ -93,7 +95,7 @@ public:
    * @return false if optimization failed
    */
   bool apply(
-    const TrajectoryPoints & input, TrajectoryPoints & output,
+    const double v0, const double a0, const TrajectoryPoints & input, TrajectoryPoints & output,
     const std::vector<double> & max_velocity_per_point = {});
 
   /**

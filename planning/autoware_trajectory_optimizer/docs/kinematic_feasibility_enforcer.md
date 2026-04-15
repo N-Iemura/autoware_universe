@@ -46,7 +46,7 @@ The yaw rate limit restricts heading changes over time:
 Δψ_rate = ψ_dot_max * Δt
 ```
 
-where `Δt` is a the time_step_s parameter defined in the trajectory_kinematic_enforcer parameter file. The same value is used for every segment.
+where `Δt` is the time interval between trajectory points.
 
 #### 3. Combined Constraint
 
@@ -83,7 +83,8 @@ vehicle pose:
 
 ### Key Algorithm Properties
 
-- **Arc length preservation**: Segment distances are preserved
+- **Arc length preservation**: Maintains `dt = s / v` relationship for each
+  segment
 - **Forward causality**: Each point depends only on previous points (no
   backward propagation)
 - **Velocity preservation**: Original velocity profile unchanged
@@ -104,8 +105,8 @@ for (size_t i = 0; i < traj_points.size() - 1; ++i) {
 }
 ```
 
-This ensures arc lengths remain constant during forward propagation. Timing is determined
-by the single `avg_dt` computed from `time_from_start` deltas, not per-segment kinematics.
+This ensures arc lengths remain constant during forward propagation, preserving
+the implicit timing: `dt_i = s_i / v_i`.
 
 ### Heading Update Logic
 
@@ -150,24 +151,29 @@ These are automatically loaded from vehicle configuration:
 
 ### Plugin Execution Order
 
-In the default pipeline the kinematic feasibility enforcer runs **twice**: once before the QP
-smoother and once after. The first pass pre-conditions the path so the QP solver operates on
-a kinematically plausible input. The second pass catches any constraint violations reintroduced
-by the smoothing. Both passes use the same parameter set and operate independently.
+The kinematic feasibility enforcer should run **before** the QP smoother in
+the plugin pipeline to ensure:
+
+1. Trajectory points respect kinematic constraints
+2. QP smoother operates on kinematically feasible input
+3. Arc lengths and timing structure are preserved for QP optimization
 
 ## Limitations
 
 1. **Path deviation**: Kinematic constraints may cause significant deviation
    from the original planner path, especially for aggressive maneuvers.
 
-2. **Steering dynamics**: Does not model steering rate limits or steering
+2. **Velocity-time assumptions**: Algorithm assumes constant velocity within
+   each segment (`dt = s / v`). Large velocity changes may affect accuracy.
+
+3. **Steering dynamics**: Does not model steering rate limits or steering
    system dynamics - only considers geometric and yaw rate constraints.
 
-3. **Lateral acceleration**: Does not directly constrain lateral acceleration
+4. **Lateral acceleration**: Does not directly constrain lateral acceleration
    (though indirectly limited by yaw rate constraint).
 
-4. **Reverse driving**: Assumes forward motion. May need special handling for
+5. **Reverse driving**: Assumes forward motion. May need special handling for
    reverse trajectories.
 
-5. **Computation time**: Forward propagation through entire trajectory adds
+6. **Computation time**: Forward propagation through entire trajectory adds
    overhead (typically < 1 ms for 100-point trajectory).

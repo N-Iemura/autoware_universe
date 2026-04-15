@@ -19,6 +19,8 @@
 
 #include <autoware/behavior_velocity_planner_common/utilization/util.hpp>
 #include <autoware/motion_utils/trajectory/trajectory.hpp>
+#include <autoware_lanelet2_extension/utility/query.hpp>
+#include <autoware_lanelet2_extension/utility/utilities.hpp>
 #include <autoware_lanelet2_extension/visualization/visualization.hpp>
 #include <tf2/utils.hpp>
 

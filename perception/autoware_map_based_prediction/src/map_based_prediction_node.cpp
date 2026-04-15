@@ -14,7 +14,6 @@
 
 #include "map_based_prediction/map_based_prediction_node.hpp"
 
-#include "map_based_prediction/data_structure.hpp"
 #include "map_based_prediction/utils.hpp"
 
 #include <autoware/interpolation/linear_interpolation.hpp>
@@ -37,6 +36,7 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
 
+#include <glog/logging.h>
 #include <lanelet2_core/LaneletMap.h>
 #include <lanelet2_core/geometry/Lanelet.h>
 #include <lanelet2_core/geometry/LaneletMap.h>
@@ -168,12 +168,12 @@ void calcLateralKinematics(
 /**
  * @brief look for matching lanelet between current/previous object state and calculate velocity
  *
- * @param prev_obj previous RoadUser
- * @param current_obj current RoadUser to be updated
+ * @param prev_obj previous ObjectData
+ * @param current_obj current ObjectData to be updated
  * @param routing_graph_ptr_ routing graph pointer
  */
 void updateLateralKinematicsVector(
-  const RoadUser & prev_obj, RoadUser & current_obj,
+  const ObjectData & prev_obj, ObjectData & current_obj,
   const lanelet::routing::RoutingGraphPtr routing_graph_ptr_, const double lowpass_cutoff)
 {
   const double dt = (current_obj.header.stamp.sec - prev_obj.header.stamp.sec) +
@@ -363,6 +363,10 @@ void replaceObjectYawWithLaneletsYaw(
 MapBasedPredictionNode::MapBasedPredictionNode(const rclcpp::NodeOptions & node_options)
 : Node("map_based_prediction", node_options)
 {
+  if (!google::IsGoogleLoggingInitialized()) {
+    google::InitGoogleLogging("map_based_prediction_node");
+    google::InstallFailureSignalHandler();
+  }
   prediction_time_horizon_.vehicle = declare_parameter<double>("prediction_time_horizon.vehicle");
   prediction_time_horizon_.pedestrian =
     declare_parameter<double>("prediction_time_horizon.pedestrian");
@@ -826,35 +830,36 @@ void MapBasedPredictionNode::updateRoadUsersHistory(
   std::string object_id = autoware_utils::to_hex_string(object.object_id);
   const auto current_lanelets = getLanelets(current_lanelets_data);
 
-  RoadUser road_user;
-  road_user.header = header;
-  road_user.current_lanelets = current_lanelets;
-  road_user.future_possible_lanelets = current_lanelets;
-  road_user.pose = object.kinematics.pose_with_covariance.pose;
+  ObjectData single_object_data;
+  single_object_data.header = header;
+  single_object_data.current_lanelets = current_lanelets;
+  single_object_data.future_possible_lanelets = current_lanelets;
+  single_object_data.pose = object.kinematics.pose_with_covariance.pose;
   const double object_yaw = tf2::getYaw(object.kinematics.pose_with_covariance.pose.orientation);
-  road_user.pose.orientation = autoware_utils::create_quaternion_from_yaw(object_yaw);
-  road_user.time_delay = std::fabs((this->get_clock()->now() - header.stamp).seconds());
-  road_user.twist = object.kinematics.twist_with_covariance.twist;
+  single_object_data.pose.orientation = autoware_utils::create_quaternion_from_yaw(object_yaw);
+  single_object_data.time_delay = std::fabs((this->get_clock()->now() - header.stamp).seconds());
+  single_object_data.twist = object.kinematics.twist_with_covariance.twist;
 
   // Init lateral kinematics
   for (const auto & current_lane : current_lanelets) {
     const LateralKinematicsToLanelet lateral_kinematics =
-      initLateralKinematics(current_lane, road_user.pose);
-    road_user.lateral_kinematics_set[current_lane] = lateral_kinematics;
+      initLateralKinematics(current_lane, single_object_data.pose);
+    single_object_data.lateral_kinematics_set[current_lane] = lateral_kinematics;
   }
 
   if (road_users_history_.count(object_id) == 0) {
     // New Object(Create a new object in object histories)
-    road_users_history_.emplace(object_id, std::deque<RoadUser>({road_user}));
+    std::deque<ObjectData> object_data = {single_object_data};
+    road_users_history_.emplace(object_id, object_data);
   } else {
     // Object that is already in the object buffer
-    std::deque<RoadUser> & road_users = road_users_history_.at(object_id);
+    std::deque<ObjectData> & object_data = road_users_history_.at(object_id);
     // get previous object data and update
-    const auto prev_road_user = road_users.back();
+    const auto prev_object_data = object_data.back();
     updateLateralKinematicsVector(
-      prev_road_user, road_user, routing_graph_ptr_, cutoff_freq_of_velocity_lpf_);
+      prev_object_data, single_object_data, routing_graph_ptr_, cutoff_freq_of_velocity_lpf_);
 
-    road_users.push_back(road_user);
+    object_data.push_back(single_object_data);
   }
 }
 
@@ -1138,7 +1143,7 @@ Maneuver MapBasedPredictionNode::predictObjectManeuverByTimeToLaneChange(
     return Maneuver::LANE_FOLLOW;
   }
 
-  const std::deque<RoadUser> & object_info = road_users_history_.at(object_id);
+  const std::deque<ObjectData> & object_info = road_users_history_.at(object_id);
 
   // Step2. Check if object history length longer than history_time_length
   const int latest_id = static_cast<int>(object_info.size()) - 1;
@@ -1211,7 +1216,7 @@ Maneuver MapBasedPredictionNode::predictObjectManeuverByLatDiffDistance(
     return Maneuver::LANE_FOLLOW;
   }
 
-  const std::deque<RoadUser> & object_info = road_users_history_.at(object_id);
+  const std::deque<ObjectData> & object_info = road_users_history_.at(object_id);
   const double current_time = (this->get_clock()->now()).seconds();
 
   // Step2. Get the previous id

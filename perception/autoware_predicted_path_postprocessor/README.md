@@ -10,8 +10,6 @@ The following processors are supported:
 
 - [RefineBySpeed](./docs/refine_by_speed.md)
   - Refine the paths of objects based on their current speed.
-- [RefinePenetrationByStaticObjects](./docs/refine_penetration_by_static_objects.md)
-  - Refine the penetrated paths of objects based on the other static objects.
 
 ## Inputs / Outputs
 
@@ -35,7 +33,7 @@ The following processors are supported:
 To use this package, you can launch it with the following command:
 
 ```bash
-ros2 launch autoware_predicted_path_postprocessor predicted_path_postprocessor.launch.xml
+ros2 launch autoware_predicted_path_postprocessor autoware_predicted_path_postprocessor.launch.xml
 ```
 
 ### Leverage Processor in Your Codebase
@@ -108,9 +106,8 @@ As an example, let's see how to add a new processor by using a processor called 
        }
 
     private:
-       result_type check_context(const Context & context) const noexcept override
+       result_type check_context(const Context & context)
        {
-         // Override if necessary!!
          // ...Check context if it contains the required information
          return make_ok<error_type>();
        }
@@ -134,7 +131,7 @@ As an example, let's see how to add a new processor by using a processor called 
    {
      std::vector<ProcessorInterface::UniquePtr> outputs;
      for (const auto & name : processor_names) {
-       if ( /* ... */ ) {
+       if ( /* ... */) {
          // ...
        } else if (name == "filter_by_something") {
          outputs.push_back(std::make_unique<FilterBySomething>(node_ptr, name));

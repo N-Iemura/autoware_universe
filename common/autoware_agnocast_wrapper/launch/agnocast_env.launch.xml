@@ -1,0 +1,15 @@
+<launch>
+  <arg name="use_multithread" default="false"/>
+
+  <let name="use_agnocast" value="$(env ENABLE_AGNOCAST 0)"/>
+
+  <let name="container_package" value="rclcpp_components" unless="$(eval &quot;'$(var use_agnocast)' == '1'&quot;)"/>
+  <let name="container_package" value="agnocast_components" if="$(eval &quot;'$(var use_agnocast)' == '1'&quot;)"/>
+
+  <let name="container_executable" value="component_container" unless="$(var use_multithread)"/>
+  <let name="container_executable" value="component_container_mt" if="$(var use_multithread)"/>
+  <let name="container_executable" value="agnocast_component_container_cie" if="$(eval &quot;'$(var use_agnocast)' == '1' and '$(var use_multithread)' != 'true' and '$(var use_multithread)' != 'True'&quot;)"/>
+  <let name="container_executable" value="agnocast_component_container_mt" if="$(eval &quot;'$(var use_agnocast)' == '1' and ('$(var use_multithread)' == 'true' or '$(var use_multithread)' == 'True')&quot;)"/>
+
+  <let name="ld_preload_value" value="libagnocast_heaphook.so:$(env LD_PRELOAD '')"/>
+</launch>

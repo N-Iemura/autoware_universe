@@ -16,7 +16,6 @@
 
 
 """Define a drive_controller class that calculates the final input of the Proxima-side MPC."""
-
 from functools import partial
 from importlib import reload as ir
 import threading

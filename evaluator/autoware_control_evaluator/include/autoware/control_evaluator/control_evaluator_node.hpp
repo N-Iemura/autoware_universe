@@ -149,8 +149,6 @@ private:
     Metric::goal_yaw_deviation_abs,
     Metric::left_boundary_distance,
     Metric::right_boundary_distance,
-    Metric::left_uncrossable_boundary_distance,
-    Metric::right_uncrossable_boundary_distance,
     Metric::steering_angle,
     Metric::steering_angle_abs,
     Metric::steering_rate,

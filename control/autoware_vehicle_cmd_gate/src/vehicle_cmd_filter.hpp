@@ -20,7 +20,6 @@
 
 #include <autoware_control_msgs/msg/control.hpp>
 
-#include <optional>
 #include <vector>
 
 namespace autoware::vehicle_cmd_gate
@@ -53,11 +52,6 @@ public:
   void setParam(const VehicleCmdFilterParam & p);
   VehicleCmdFilterParam getParam() const;
   void setPrevCmd(const Control & v) { prev_cmd_ = v; }
-  void setLogger(const rclcpp::Logger & logger, rclcpp::Clock::SharedPtr clock)
-  {
-    logger_ = logger;
-    clock_ = clock;
-  }
 
   void limitLongitudinalWithVel(Control & input) const;
   void limitLongitudinalWithAcc(const double dt, Control & input) const;
@@ -77,8 +71,6 @@ private:
   VehicleCmdFilterParam param_;
   Control prev_cmd_;
   double current_speed_ = 0.0;
-  std::optional<rclcpp::Logger> logger_;
-  rclcpp::Clock::SharedPtr clock_;
 
   bool setParameterWithValidation(const VehicleCmdFilterParam & p);
 

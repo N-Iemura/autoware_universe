@@ -52,17 +52,8 @@ TEST(alt_geometry, area)
   }
 }
 
-TEST(alt_geometry, DISABLED_convexHull)
+TEST(alt_geometry, convexHull)
 {
-  // FIXME(soblin): convex_hull algorithm can cause infinite-loop
-  /*
-    1: make_hull: p1=(2.000000, 1.300000), p2=(5.400000, 1.200000), points.size=7
-    1: make_hull: p1=(2.000000, 1.300000), p2=(4.100000, 3.000000), points.size=1
-    1: make_hull: p1=(2.000000, 1.300000), p2=(2.400000, 1.700000), points.size=1
-    1: make_hull: p1=(2.000000, 1.300000), p2=(2.400000, 1.700000), points.size=1
-    1: make_hull: p1=(2.000000, 1.300000), p2=(2.400000, 1.700000), points.size=1
-    ...
-   */
   using autoware::universe_utils::convex_hull;
   using autoware::universe_utils::alt::PointList2d;
   using autoware::universe_utils::alt::Points2d;
@@ -797,7 +788,7 @@ TEST(alt_geometry, areaRand)
   }
 }
 
-TEST(alt_geometry, DISABLED_convexHullRand)
+TEST(alt_geometry, convexHullRand)
 {
   std::vector<autoware::universe_utils::Polygon2d> polygons;
   constexpr auto polygons_nb = 100;

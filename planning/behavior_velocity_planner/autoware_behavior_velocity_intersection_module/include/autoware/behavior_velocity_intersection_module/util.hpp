@@ -175,7 +175,7 @@ lanelet::ConstLanelets getPrevLanelets(
 /**
  * @brief generate a lanelet from the path
  */
-std::optional<lanelet::ConstLanelet> generatePathLanelet(
+lanelet::ConstLanelet generatePathLanelet(
   const autoware_internal_planning_msgs::msg::PathWithLaneId & path, const size_t start_idx,
   const size_t end_idx, const double width, const double interval);
 

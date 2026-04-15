@@ -16,7 +16,7 @@ comment:
 
 flag_management:
   default_rules:
-    carryforward: false
+    carryforward: true
     statuses:
       - name_prefix: project-
         type: project
@@ -26,9 +26,6 @@ flag_management:
         type: patch
         target: 0% # Make CI always succeed
         threshold: 100% # Make CI always succeed
-  individual_flags:
-    - name: full-suite
-      carryforward: true
 
 ignore:
   - "**/test/*"

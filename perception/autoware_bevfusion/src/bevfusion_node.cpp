@@ -18,7 +18,6 @@
 
 #include <cstddef>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -129,11 +128,6 @@ BEVFusionNode::BEVFusionNode(const rclcpp::NodeOptions & options)
 
   sensor_fusion_ = config.sensor_fusion_;
 
-  use_compressed_images_ =
-    this->declare_parameter<bool>("use_compressed_images", false, descriptor);
-  const auto run_image_undistortion =
-    this->declare_parameter<bool>("run_image_undistortion", descriptor);
-
   DensificationParam densification_param(
     densification_world_frame_id, densification_num_past_frames);
 
@@ -148,19 +142,6 @@ BEVFusionNode::BEVFusionNode(const rclcpp::NodeOptions & options)
           image_backbone_engine_path, 1ULL << 32U)
       }
       : TrtBEVFusionConfig{trt_main_config, std::nullopt};
-
-  // Build Image Preprocessing Parameters
-  // TODO(KokSeang): Remove image preprocessing parameters out of BEVFusionConfig
-  auto image_pre_processing_params = ImagePreProcessingParams(
-        raw_image_height,
-        raw_image_width,
-        roi_height,
-        roi_width,
-        img_aug_scale_y,
-        img_aug_scale_x,
-        run_image_undistortion
-    );
-
   // clang-format on
   detector_ptr_ = std::make_unique<BEVFusionTRT>(trt_bevfusion_config, densification_param, config);
   diagnostics_detector_trt_ =
@@ -174,7 +155,7 @@ BEVFusionNode::BEVFusionNode(const rclcpp::NodeOptions & options)
   objects_pub_ = this->create_publisher<autoware_perception_msgs::msg::DetectedObjects>(
     "~/output/objects", rclcpp::QoS(1));
 
-  initializeSensorFusionSubscribers(config.num_cameras_, image_pre_processing_params);
+  initializeSensorFusionSubscribers(config.num_cameras_);
 
   published_time_pub_ = std::make_unique<autoware_utils::PublishedTimePublisher>(this);
 
@@ -219,7 +200,7 @@ void BEVFusionNode::cloudCallback(
   std::unordered_map<std::string, double> proc_timing;
   bool is_num_voxels_within_range = true;
   const bool is_success = detector_ptr_->detect(
-    pc_msg_ptr, camera_data_ptrs_, camera_masks_, tf_buffer_, det_boxes3d, proc_timing,
+    pc_msg_ptr, image_msgs_, camera_masks_, tf_buffer_, det_boxes3d, proc_timing,
     is_num_voxels_within_range);
 
   if (!is_success) {
@@ -260,24 +241,25 @@ void BEVFusionNode::cloudCallback(
 void BEVFusionNode::imageCallback(
   const sensor_msgs::msg::Image::ConstSharedPtr msg, std::size_t camera_id)
 {
-  camera_data_ptrs_[camera_id]->update_image_msg(msg);
+  image_msgs_[camera_id] = msg;
 
   std::size_t num_valid_images = std::count_if(
-    camera_data_ptrs_.begin(), camera_data_ptrs_.end(),
-    [](const auto & camera_data) { return camera_data->is_image_msg_available(); });
+    image_msgs_.begin(), image_msgs_.end(),
+    [](const auto & image_msg) { return image_msg != nullptr; });
 
-  images_available_ = num_valid_images == camera_data_ptrs_.size();
+  images_available_ = num_valid_images == image_msgs_.size();
 }
 
 void BEVFusionNode::cameraInfoCallback(
   const sensor_msgs::msg::CameraInfo & msg, std::size_t camera_id)
 {
-  camera_data_ptrs_[camera_id]->update_camera_info(msg);
-  std::size_t num_valid_intrinsics = std::count_if(
-    camera_data_ptrs_.begin(), camera_data_ptrs_.end(),
-    [](const auto & camera_data) { return camera_data->is_camera_info_available(); });
+  camera_info_msgs_[camera_id] = msg;
 
-  intrinsics_available_ = num_valid_intrinsics == camera_data_ptrs_.size();
+  std::size_t num_valid_intrinsics = std::count_if(
+    camera_info_msgs_.begin(), camera_info_msgs_.end(),
+    [](const auto & opt) { return opt.has_value(); });
+
+  intrinsics_available_ = num_valid_intrinsics == camera_info_msgs_.size();
 
   if (
     lidar2camera_extrinsics_[camera_id].has_value() || !lidar_frame_.has_value() ||
@@ -296,7 +278,7 @@ void BEVFusionNode::cameraInfoCallback(
     Matrix4f lidar2camera_rowmajor_transform = lidar2camera_transform.eval();
     lidar2camera_extrinsics_[camera_id] = lidar2camera_rowmajor_transform;
   } catch (tf2::TransformException & ex) {
-    RCLCPP_WARN_STREAM(rclcpp::get_logger("bevfusion"), ex.what());
+    RCLCPP_WARN(this->get_logger(), "%s", ex.what());
     return;
   }
 

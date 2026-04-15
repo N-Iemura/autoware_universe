@@ -91,8 +91,6 @@ public:
 
   virtual TurnSignalInfo updateOutputTurnSignal() const = 0;
 
-  virtual bool hasMissedLaneChangePath() const = 0;
-
   virtual bool hasFinishedLaneChange() const = 0;
 
   virtual bool hasFinishedAbort() const = 0;

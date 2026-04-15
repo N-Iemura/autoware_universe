@@ -15,17 +15,21 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Display Python version
+    - name: Install python3-pip
       run: |
         sudo apt-get -yqq update
-        sudo apt-get -yqq install python-is-python3
-        python --version
+        sudo apt-get -yqq install python3-pip python-is-python3
       shell: bash
 
-    - name: Install PyYAML
+    - name: Display Python version
       run: |
-        sudo apt-get -yqq update
-        sudo apt-get -yqq install python3-yaml
+        python --version
+        which pip
+        pip --version
+      shell: bash
+
+    - name: Install PyYAML dependency
+      run: pip install pyyaml
       shell: bash
 
     - name: Combine repos files

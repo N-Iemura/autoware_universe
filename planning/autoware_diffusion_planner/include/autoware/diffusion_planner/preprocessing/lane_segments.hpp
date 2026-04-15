@@ -20,7 +20,6 @@
 #include "autoware/diffusion_planner/preprocessing/traffic_signals.hpp"
 #include "autoware/traffic_light_utils/traffic_light_utils.hpp"
 
-#include <autoware_perception_msgs/msg/traffic_light_group.hpp>
 #include <autoware_perception_msgs/msg/traffic_light_group_array.hpp>
 #include <autoware_planning_msgs/msg/lanelet_route.hpp>
 #include <geometry_msgs/msg/detail/point__struct.hpp>
@@ -66,9 +65,7 @@ public:
    *
    * @param lanelet_map_ptr Shared pointer to the lanelet map.
    */
-  explicit LaneSegmentContext(
-    const std::shared_ptr<const lanelet::LaneletMap> & lanelet_map_ptr,
-    double line_string_max_step_m = 5.0);
+  explicit LaneSegmentContext(const std::shared_ptr<const lanelet::LaneletMap> & lanelet_map_ptr);
 
   /**
    * @brief Select route segment indices based on route and constraints.
@@ -111,21 +108,6 @@ public:
     const std::vector<int64_t> & segment_indices, const int64_t max_segments) const;
 
   /**
-   * @brief Get the first traffic light on the route from ego position forward.
-   *
-   * @param route The lanelet route.
-   * @param center_x X-coordinate of ego center.
-   * @param center_y Y-coordinate of ego center.
-   * @param center_z Z-coordinate of ego center.
-   * @param traffic_light_id_map Map of traffic light IDs to signal data.
-   * @return TrafficLightGroup: cached signal if perception available, UNKNOWN element if not, or
-   *         empty (traffic_light_group_id=0, elements empty) if no traffic light on route.
-   */
-  autoware_perception_msgs::msg::TrafficLightGroup get_first_traffic_light_on_route(
-    const LaneletRoute & route, const double center_x, const double center_y, const double center_z,
-    const std::map<lanelet::Id, TrafficSignalStamped> & traffic_light_id_map) const;
-
-  /**
    * @brief Get the mapping from lanelet ID to array index.
    *
    * @return Map of lanelet IDs to their corresponding array indices.
@@ -140,36 +122,33 @@ public:
     const Eigen::Matrix4d & transform_matrix, const double center_x, const double center_y) const
   {
     return create_line_tensor(
-      lanelet_map_.polygons, transform_matrix, center_x, center_y, NUM_POLYGONS, POINTS_PER_POLYGON,
-      POLYGON_TYPE_NUM);
+      lanelet_map_.polygons, transform_matrix, center_x, center_y, NUM_POLYGONS,
+      POINTS_PER_POLYGON);
   }
   std::vector<float> create_line_string_tensor(
     const Eigen::Matrix4d & transform_matrix, const double center_x, const double center_y) const
   {
     return create_line_tensor(
       lanelet_map_.line_strings, transform_matrix, center_x, center_y, NUM_LINE_STRINGS,
-      POINTS_PER_LINE_STRING, LINE_STRING_TYPE_NUM);
+      POINTS_PER_LINE_STRING);
   }
 
 private:
   /**
-   * @brief Create line tensor data from elements with points and type.
+   * @brief Create line tensor data from polygon data.
    *
-   * @tparam T Element type with `.points` (std::vector<LanePoint>) and `.type` (enum).
-   * @param elements Vector of elements to process.
+   * @param polylines Vector of polylines to process.
    * @param transform_matrix Transformation matrix to apply to the points.
    * @param center_x X-coordinate of the center point.
    * @param center_y Y-coordinate of the center point.
    * @param num_elements Maximum number of elements to include.
    * @param num_points Number of points per element.
-   * @param num_types Number of type categories for one-hot encoding.
-   * @return Vector of float tensor data with shape [num_elements, num_points, 2 + num_types].
+   * @return Vector of float tensor data.
    */
-  template <typename T>
   std::vector<float> create_line_tensor(
-    const std::vector<T> & elements, const Eigen::Matrix4d & transform_matrix,
+    const std::vector<std::vector<LanePoint>> & polylines, const Eigen::Matrix4d & transform_matrix,
     const double center_x, const double center_y, const int64_t num_elements,
-    const int64_t num_points, const int64_t num_types) const;
+    const int64_t num_points) const;
 
   const autoware::diffusion_planner::LaneletMap lanelet_map_;
   const std::map<lanelet::Id, size_t> lanelet_id_to_array_index_;

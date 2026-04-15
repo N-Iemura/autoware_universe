@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
 import launch
 from launch.actions import DeclareLaunchArgument
 from launch.actions import GroupAction
@@ -19,11 +22,9 @@ from launch.actions import OpaqueFunction
 from launch.conditions import LaunchConfigurationEquals
 from launch.conditions import LaunchConfigurationNotEquals
 from launch.substitutions import LaunchConfiguration
-from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
-from launch_ros.substitutions import FindPackageShare
 import yaml
 
 
@@ -32,13 +33,11 @@ def launch_setup(context, *args, **kwargs):
     with open(vehicle_info_param_path, "r") as f:
         vehicle_info_param = yaml.safe_load(f)["/**"]["ros__parameters"]
 
-    ground_segmentation_param_path = PathJoinSubstitution(
-        [
-            FindPackageShare("autoware_ground_segmentation"),
-            "config",
-            "ground_segmentation.param.yaml",
-        ]
-    ).perform(context)
+    ground_segmentation_param_path = os.path.join(
+        get_package_share_directory("autoware_ground_segmentation"),
+        "config",
+        "ground_segmentation.param.yaml",
+    )
 
     with open(ground_segmentation_param_path, "r") as f:
         ground_segmentation_param = yaml.safe_load(f)["/**"]["ros__parameters"]
@@ -91,11 +90,13 @@ def generate_launch_description():
     def add_launch_arg(name: str, default_value=None):
         return DeclareLaunchArgument(name, default_value=default_value)
 
+    default_vehicle_info_param = os.path.join(
+        get_package_share_directory("autoware_vehicle_info_utils"), "config/vehicle_info.param.yaml"
+    )
+
     vehicle_info_param = DeclareLaunchArgument(
         "vehicle_info_param_file",
-        default_value=PathJoinSubstitution(
-            [FindPackageShare("autoware_vehicle_info_utils"), "config", "vehicle_info.param.yaml"]
-        ),
+        default_value=default_vehicle_info_param,
         description="Path to config file for vehicle information",
     )
 

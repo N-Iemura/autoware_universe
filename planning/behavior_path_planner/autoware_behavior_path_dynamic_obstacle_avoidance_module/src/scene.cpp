@@ -20,6 +20,7 @@
 #include "autoware/signal_processing/lowpass_filter_1d.hpp"
 #include "autoware_utils/geometry/boost_polygon_utils.hpp"
 
+#include <autoware_lanelet2_extension/utility/utilities.hpp>
 #include <autoware_utils/geometry/geometry.hpp>
 
 #include <boost/geometry/algorithms/buffer.hpp>

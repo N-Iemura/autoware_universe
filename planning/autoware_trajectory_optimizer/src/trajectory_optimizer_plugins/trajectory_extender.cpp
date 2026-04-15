@@ -26,7 +26,7 @@ namespace autoware::trajectory_optimizer::plugin
 {
 void TrajectoryExtender::optimize_trajectory(
   TrajectoryPoints & traj_points, const TrajectoryOptimizerParams & params,
-  TrajectoryOptimizerData & data)
+  const TrajectoryOptimizerData & data)
 {
   if (!params.use_trajectory_extender) {
     return;

@@ -10,15 +10,12 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
   "src/plugin/command_plugin.cpp"
   "src/command_mode_switcher.cpp"
 )
-target_include_directories(${PROJECT_NAME} PRIVATE
-  "src"
-)
+target_include_directories(${PROJECT_NAME} PRIVATE "src")
 
-autoware_agnocast_wrapper_register_node(${PROJECT_NAME}
+rclcpp_components_register_node(${PROJECT_NAME}
   PLUGIN "autoware::command_mode_switcher::CommandModeSwitcher"
   EXECUTABLE "command_mode_switcher_node"
-  AGNOCAST_EXECUTOR CallbackIsolatedAgnocastExecutor
-  ROS2_EXECUTOR MultiThreadedExecutor
+  EXECUTOR MultiThreadedExecutor
 )
 
 if(BUILD_TESTING)

@@ -120,11 +120,19 @@ FrenetPoint convertToFrenetPoint(
  *
  * @return A Pose message with the position and orientation of the point.
  */
-geometry_msgs::msg::Pose to_geom_msg_pose(
-  const lanelet::BasicPoint3d & src_point, const lanelet::ConstLanelet & target_lane);
-
-geometry_msgs::msg::Pose to_geom_msg_pose(
-  const lanelet::BasicPoint2d & src_point, const lanelet::ConstLanelet & target_lane);
+template <class LaneletPointType>
+Pose to_geom_msg_pose(const LaneletPointType & src_point, const lanelet::ConstLanelet & target_lane)
+{
+  const auto point = lanelet::utils::conversion::toGeomMsgPt(src_point);
+  const auto yaw = autoware::experimental::lanelet2_utils::get_lanelet_angle(
+    target_lane, autoware::experimental::lanelet2_utils::from_ros(point).basicPoint());
+  geometry_msgs::msg::Pose pose;
+  pose.position = point;
+  tf2::Quaternion quat;
+  quat.setRPY(0, 0, yaw);
+  pose.orientation = tf2::toMsg(quat);
+  return pose;
+}
 
 // distance (arclength) calculation
 double l2Norm(const Vector3 vector);

@@ -12,18 +12,14 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
   src/tracked_object_sorter_node.cpp
 )
 
-autoware_agnocast_wrapper_register_node(${PROJECT_NAME}
+rclcpp_components_register_node(${PROJECT_NAME}
   PLUGIN "autoware::object_sorter::DetectedObjectSorterNode"
   EXECUTABLE detected_object_sorter_node
-  ROS2_EXECUTOR SingleThreadedExecutor
-  AGNOCAST_EXECUTOR CallbackIsolatedAgnocastExecutor
 )
 
-autoware_agnocast_wrapper_register_node(${PROJECT_NAME}
+rclcpp_components_register_node(${PROJECT_NAME}
   PLUGIN "autoware::object_sorter::TrackedObjectSorterNode"
   EXECUTABLE tracked_object_sorter_node
-  ROS2_EXECUTOR SingleThreadedExecutor
-  AGNOCAST_EXECUTOR CallbackIsolatedAgnocastExecutor
 )
 
 # Tests

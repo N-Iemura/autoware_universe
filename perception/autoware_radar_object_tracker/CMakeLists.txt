@@ -12,6 +12,7 @@ endif()
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(nlohmann_json REQUIRED) # for debug
+find_package(glog REQUIRED)
 find_package(ament_cmake_gtest REQUIRED)
 
 include_directories(
@@ -37,6 +38,7 @@ target_link_libraries(${PROJECT_NAME}
   Eigen3::Eigen
   yaml-cpp
   nlohmann_json::nlohmann_json # for debug
+  glog::glog
   ${PROJECT_NAME}_utils
 )
 
@@ -63,7 +65,7 @@ if(BUILD_TESTING)
 endif()
 
 # Package
-autoware_ament_auto_package(
+ament_auto_package(
   INSTALL_TO_SHARE
   launch
   config

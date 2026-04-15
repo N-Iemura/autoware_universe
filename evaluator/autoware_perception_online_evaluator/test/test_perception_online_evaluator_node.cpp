@@ -26,6 +26,7 @@
 
 #include "boost/lexical_cast.hpp"
 
+#include <glog/logging.h>
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -95,7 +96,11 @@ protected:
     uuid_ = generate_uuid();
   }
 
-  ~EvalTest() override { rclcpp::shutdown(); }
+  ~EvalTest() override
+  {
+    rclcpp::shutdown();
+    google::ShutdownGoogleLogging();
+  }
 
   void publishEgoTF(const double time = 0.0)
   {
@@ -264,13 +269,6 @@ protected:
 
   double publishObjectsAndGetMetric(const PredictedObjects & objects)
   {
-    // Flush any stale metrics still in the DDS pipeline from previous publish cycles
-    for (int i = 0; i < 3; ++i) {
-      rclcpp::spin_some(eval_node);
-      rclcpp::spin_some(dummy_node);
-      rclcpp::sleep_for(std::chrono::milliseconds(100));
-    }
-
     metric_updated_ = false;
     objects_pub_->publish(objects);
     const auto now = rclcpp::Clock().now();
@@ -289,8 +287,8 @@ protected:
   void publishObjects(const PredictedObjects & objects)
   {
     objects_pub_->publish(objects);
-    rclcpp::sleep_for(std::chrono::milliseconds(100));
     rclcpp::spin_some(eval_node);
+    rclcpp::sleep_for(std::chrono::milliseconds(100));
     rclcpp::spin_some(dummy_node);
   }
 
