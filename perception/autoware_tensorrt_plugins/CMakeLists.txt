@@ -152,9 +152,10 @@ if(TRT_AVAIL AND CUDA_AVAIL AND SPCONV_AVAIL)
     LIBRARY DESTINATION lib
   )
 
+  ament_auto_package()
+
 else()
   find_package(ament_cmake_auto REQUIRED)
   ament_auto_find_build_dependencies()
+  ament_auto_package()
 endif()
-
-ament_auto_package()
