@@ -14,7 +14,7 @@
 
 #ifndef AUTOWARE__JOY_CONTROLLER__JOY_CONTROLLER_HPP_
 #define AUTOWARE__JOY_CONTROLLER__JOY_CONTROLLER_HPP_
-
+#include <autoware_vehicle_msgs/msg/gear_command.hpp>
 #include "autoware/joy_controller/joy_converter/joy_converter_base.hpp"
 
 #include <autoware_utils/ros/polling_subscriber.hpp>
@@ -84,7 +84,7 @@ private:
   rclcpp::Publisher<autoware_control_msgs::msg::Control>::SharedPtr pub_control_command_;
   rclcpp::Publisher<tier4_external_api_msgs::msg::ControlCommandStamped>::SharedPtr
     pub_external_control_command_;
-  rclcpp::Publisher<tier4_external_api_msgs::msg::GearShiftStamped>::SharedPtr pub_shift_;
+  rclcpp::Publisher<autoware_vehicle_msgs::msg::GearCommand>::SharedPtr pub_shift_;
   rclcpp::Publisher<tier4_external_api_msgs::msg::TurnSignalStamped>::SharedPtr pub_turn_signal_;
   rclcpp::Publisher<tier4_external_api_msgs::msg::Heartbeat>::SharedPtr pub_heartbeat_;
   rclcpp::Publisher<tier4_control_msgs::msg::GateMode>::SharedPtr pub_gate_mode_;

@@ -31,7 +31,7 @@ public:
     const auto button = static_cast<float>(Cross());
     const auto stick = std::max(0.0f, RStickUpDown());
     const auto trigger = std::max(0.0f, -RTrigger());
-    return std::max({button, stick, trigger});
+    return (std::max({button, stick, trigger})>0.1 ? std::max({button, stick, trigger}) : 0.0);
   }
 
   float brake() const
@@ -39,7 +39,7 @@ public:
     const auto button = static_cast<float>(Square());
     const auto stick = std::max(0.0f, -RStickUpDown());
     const auto trigger = std::max(0.0f, -LTrigger());
-    return std::max({button, stick, trigger});
+    return (std::max({button, stick, trigger})>0.1 ? std::max({button, stick, trigger}) : 0.0);
   }
 
   float steer() const { return LStickLeftRight(); }

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "autoware/joy_controller/joy_controller.hpp"
+#include <autoware_vehicle_msgs/msg/gear_command.hpp>
 #include "autoware/joy_controller/joy_converter/ds4_joy_converter.hpp"
 #include "autoware/joy_controller/joy_converter/g29_joy_converter.hpp"
 #include "autoware/joy_controller/joy_converter/p65_joy_converter.hpp"
@@ -34,77 +35,7 @@ using GearShift = tier4_external_api_msgs::msg::GearShift;
 using TurnSignal = tier4_external_api_msgs::msg::TurnSignal;
 using GateMode = tier4_control_msgs::msg::GateMode;
 
-GearShiftType getUpperShift(const GearShiftType & shift)
-{
-  if (shift == GearShift::NONE) {
-    return GearShift::PARKING;
-  }
-  if (shift == GearShift::PARKING) {
-    return GearShift::REVERSE;
-  }
-  if (shift == GearShift::REVERSE) {
-    return GearShift::NEUTRAL;
-  }
-  if (shift == GearShift::NEUTRAL) {
-    return GearShift::DRIVE;
-  }
-  if (shift == GearShift::DRIVE) {
-    return GearShift::LOW;
-  }
-  if (shift == GearShift::LOW) {
-    return GearShift::LOW;
-  }
 
-  return GearShift::NONE;
-}
-
-GearShiftType getLowerShift(const GearShiftType & shift)
-{
-  if (shift == GearShift::NONE) {
-    return GearShift::PARKING;
-  }
-  if (shift == GearShift::PARKING) {
-    return GearShift::PARKING;
-  }
-  if (shift == GearShift::REVERSE) {
-    return GearShift::PARKING;
-  }
-  if (shift == GearShift::NEUTRAL) {
-    return GearShift::REVERSE;
-  }
-  if (shift == GearShift::DRIVE) {
-    return GearShift::NEUTRAL;
-  }
-  if (shift == GearShift::LOW) {
-    return GearShift::DRIVE;
-  }
-
-  return GearShift::NONE;
-}
-
-const char * getShiftName(const GearShiftType & shift)
-{
-  if (shift == GearShift::NONE) {
-    return "NONE";
-  }
-  if (shift == GearShift::PARKING) {
-    return "PARKING";
-  }
-  if (shift == GearShift::REVERSE) {
-    return "REVERSE";
-  }
-  if (shift == GearShift::NEUTRAL) {
-    return "NEUTRAL";
-  }
-  if (shift == GearShift::DRIVE) {
-    return "DRIVE";
-  }
-  if (shift == GearShift::LOW) {
-    return "LOW";
-  }
-
-  return "NOT_SUPPORTED";
-}
 
 const char * getTurnSignalName(const TurnSignalType & turn_signal)
 {
@@ -273,36 +204,58 @@ void AutowareJoyControllerNode::publishControlCommand()
 {
   autoware_control_msgs::msg::Control cmd;
   cmd.stamp = this->now();
-  {
-    cmd.lateral.steering_tire_angle = steer_ratio_ * joy_->steer();
-    cmd.lateral.steering_tire_rotation_rate = steering_angle_velocity_;
 
-    if (joy_->accel()) {
-      cmd.longitudinal.acceleration = accel_ratio_ * joy_->accel();
-      cmd.longitudinal.velocity =
-        twist_->twist.linear.x + velocity_gain_ * cmd.longitudinal.acceleration;
-      cmd.longitudinal.velocity =
-        std::min(cmd.longitudinal.velocity, static_cast<float>(max_forward_velocity_));
+  //steer
+  cmd.lateral.steering_tire_angle = steer_ratio_ * joy_->steer();
+  cmd.lateral.steering_tire_rotation_rate = steering_angle_velocity_;
+
+  // get current_vel
+  const float current_vel = static_cast<float>(twist_->twist.linear.x);
+  // ========================
+  // accel
+  // ========================
+  if (joy_->accel() && !joy_->brake()) {
+    float desired_accel = accel_ratio_ * joy_->accel();
+
+    if ((current_vel >= max_forward_velocity_)||(current_vel <= -max_backward_velocity_) ){
+      desired_accel = 0.0f; // 速度到顶，不再给油
     }
 
-    if (joy_->brake()) {
-      cmd.longitudinal.velocity = 0.0;
-      cmd.longitudinal.acceleration = -brake_ratio_ * joy_->brake();
+    cmd.longitudinal.acceleration = desired_accel;
+    cmd.longitudinal.velocity = max_forward_velocity_;
+  }
+  // ========================
+  // brake
+  // ========================
+  else if (joy_->brake() && !joy_->accel()) {
+    cmd.longitudinal.velocity = 0.0;
+    cmd.longitudinal.acceleration = -brake_ratio_ * joy_->brake();
+  }
+  // ========================
+  // accel&brake
+  // ========================
+  else if (joy_->accel() && joy_->brake()) {
+    float desired_accel = backward_accel_ratio_ * joy_->accel();
+
+    if (std::abs(current_vel) >= max_backward_velocity_) {
+      desired_accel = 0.0f;
     }
 
-    // Backward
-    if (joy_->accel() && joy_->brake()) {
-      cmd.longitudinal.acceleration = backward_accel_ratio_ * joy_->accel();
-      cmd.longitudinal.velocity =
-        twist_->twist.linear.x - velocity_gain_ * cmd.longitudinal.acceleration;
-      cmd.longitudinal.velocity =
-        std::max(cmd.longitudinal.velocity, static_cast<float>(-max_backward_velocity_));
-    }
+    cmd.longitudinal.acceleration = desired_accel;
+    cmd.longitudinal.velocity = -max_backward_velocity_;
+  }
+  // ========================
+  // None
+  // ========================
+  else {
+    cmd.longitudinal.acceleration = 0.0f;
+    cmd.longitudinal.velocity = 0.0f;
   }
 
   pub_control_command_->publish(cmd);
   prev_control_command_ = cmd;
 }
+
 
 void AutowareJoyControllerNode::publishExternalControlCommand()
 {
@@ -324,29 +277,25 @@ void AutowareJoyControllerNode::publishExternalControlCommand()
 
 void AutowareJoyControllerNode::publishShift()
 {
-  tier4_external_api_msgs::msg::GearShiftStamped gear_shift;
-  gear_shift.stamp = this->now();
-
-  if (joy_->shift_up()) {
-    gear_shift.gear_shift.data = getUpperShift(prev_shift_);
-  }
-
-  if (joy_->shift_down()) {
-    gear_shift.gear_shift.data = getLowerShift(prev_shift_);
-  }
+  autoware_vehicle_msgs::msg::GearCommand gear_cmd;
+  gear_cmd.stamp = this->now();
 
   if (joy_->shift_drive()) {
-    gear_shift.gear_shift.data = GearShift::DRIVE;
+    gear_cmd.command = autoware_vehicle_msgs::msg::GearCommand::DRIVE;
+    RCLCPP_INFO(get_logger(), "GearCommand::DRIVE");
+    // 发布到正确话题
+    pub_shift_->publish(gear_cmd);
+  }
+  else if (joy_->shift_reverse()) {
+    gear_cmd.command = autoware_vehicle_msgs::msg::GearCommand::REVERSE;
+    RCLCPP_INFO(get_logger(), "GearCommand::REVERSE");
+    // 发布到正确话题
+    pub_shift_->publish(gear_cmd);
+  }
+  else{
+    RCLCPP_INFO(get_logger(), "GearCommand::NONE");
   }
 
-  if (joy_->shift_reverse()) {
-    gear_shift.gear_shift.data = GearShift::REVERSE;
-  }
-
-  RCLCPP_INFO(get_logger(), "GearShift::%s", getShiftName(gear_shift.gear_shift.data));
-
-  pub_shift_->publish(gear_shift);
-  prev_shift_ = gear_shift.gear_shift.data;
 }
 
 void AutowareJoyControllerNode::publishTurnSignal()
@@ -497,15 +446,16 @@ AutowareJoyControllerNode::AutowareJoyControllerNode(const rclcpp::NodeOptions &
 
   // Publisher
   pub_control_command_ =
-    this->create_publisher<autoware_control_msgs::msg::Control>("output/control_command", 1);
+    this->create_publisher<autoware_control_msgs::msg::Control>("/external/selected/control_cmd", 1);
   pub_external_control_command_ =
     this->create_publisher<tier4_external_api_msgs::msg::ControlCommandStamped>(
       "output/external_control_command", 1);
   pub_shift_ =
-    this->create_publisher<tier4_external_api_msgs::msg::GearShiftStamped>("output/shift", 1);
+  this->create_publisher<autoware_vehicle_msgs::msg::GearCommand>("/external/selected/gear_cmd", 10);
+
   pub_turn_signal_ = this->create_publisher<tier4_external_api_msgs::msg::TurnSignalStamped>(
-    "output/turn_signal", 1);
-  pub_gate_mode_ = this->create_publisher<tier4_control_msgs::msg::GateMode>("output/gate_mode", 1);
+    "/external/selected/turn_indicators_cmd", 1);
+  pub_gate_mode_ = this->create_publisher<tier4_control_msgs::msg::GateMode>("/control/gate_mode_cmd", 1);
   pub_heartbeat_ =
     this->create_publisher<tier4_external_api_msgs::msg::Heartbeat>("output/heartbeat", 1);
   pub_vehicle_engage_ =
