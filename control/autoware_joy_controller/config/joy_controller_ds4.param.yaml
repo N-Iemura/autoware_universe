@@ -11,6 +11,6 @@
     control_command:
       raw_control: false
       velocity_gain: 3.0
-      max_forward_velocity: 2.0
-      max_backward_velocity: 1.0
+      max_forward_velocity: 0.50
+      max_backward_velocity: 0.20
       backward_accel_ratio: 1.0
